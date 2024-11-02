@@ -14,6 +14,46 @@ void Device::setup() {
     pinMode(panicButtonPin, INPUT_PULLUP);
     digitalWrite(tri, LOW);
 }
+
+void Device::connectToWiFi(const char* ssid, const char* password) {
+    WiFi.mode(WIFI_STA);
+    WiFi.begin(ssid, password);
+    Serial.print("Connecting to WiFi");
+    while (WiFi.status() != WL_CONNECTED) {
+        Serial.print(".");
+        delay(250);
+    }
+    Serial.println("\nWiFi connected: " + WiFi.localIP().toString());
+    lcdClear();
+    lcdSetCursor(0, 0);
+    lcdPrint("Online");
+    delay(500);
+}
+
+void Device::connectToFirebase(const String& url) {
+    databaseUrl = url;
+    client.begin(databaseUrl);
+    int httpResponseCode = client.GET();
+    lcdClear();
+    lcdSetCursor(0, 0);
+    if (httpResponseCode > 0) {
+        lcdPrint("Firebase Online");
+        Serial.println("Firebase connected.");
+    } else {
+        lcdPrint("Firebase Error");
+        Serial.println("Failed to connect to Firebase.");
+    }
+    delay(500);
+}
+
+void Device::updateFirebase(float pulse, float temperature, float distance) {
+    String currentTime = getCurrentTime();
+    client.PATCH("{\"Status/Sensors/time\":\"" + currentTime + "\"}");
+    client.PATCH("{\"Status/Sensors/Distance\":" + String(distance) + "}");
+    client.PATCH("{\"Status/Sensors/Pulse\":" + String(pulse) + "}");
+    client.PATCH("{\"Status/Sensors/Temperature\":" + String(temperature) + "}");
+}
+
 void Device::updateLedStatus(bool isOn) {
     ledState = isOn;
 }

@@ -1,2 +1,7 @@
 LiquidCrystal I2C
 DHT sensor library for ESPx
+Time
+HttpClient
+ArduinoJson
+WiFi
+WiFiWire
