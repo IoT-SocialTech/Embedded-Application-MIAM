@@ -14,6 +14,7 @@ class Device {
     float getDistance();
     float getTemperature();
     bool isPanicButtonPressed();
+    void updateLedStatus(bool isOn);
 
 
     void lcdSetCursor(int col, int row);
@@ -28,6 +29,10 @@ class Device {
     const int eco = 14;
     const int pulse = 35;
     const int temperature = 32;
+
+
+    const float proximityThreshold = 30.0;
+    bool ledState = false;
 
     LiquidCrystal_I2C lcd;
 };
