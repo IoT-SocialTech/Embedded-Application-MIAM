@@ -2,7 +2,6 @@
 #include <Arduino.h>
 #include <time.h>
 
-
 Device::Device() : lcd(0x27, 16, 2) {}
 
 void Device::setup() {
@@ -56,19 +55,17 @@ void Device::updateFirebase(float pulse, float temperature, float distance) {
 
 void Device::updateLedStatus(bool isOn) {
     ledState = isOn;
+    client.PATCH("{\"Status/Led\":\"" + String(isOn ? "on" : "off") + "\"}");
 }
 
 void Device::sendAlert(const String &message) {
     Serial.println("ALERTA: " + message);
-}
-
-
-void Device::updateLedStatus(bool isOn) {
-    ledState = isOn;
+    client.PATCH("{\"Status/Alerts/Message\":\"" + message + "\"}");
 }
 
 
 void Device::updateReadings() {
+
     String alertMessages = "";
     bool alertSent = false;
     bool panicButtonActivated = isPanicButtonPressed();
@@ -84,21 +81,26 @@ void Device::updateReadings() {
         lcdPrint("LLAMAR AYUDA!");
         analogWrite(Ledpot, 255);
         delay(1000);
+        return;
+    } else {
+        client.PATCH("{\"Status/Alerts/panicButton\":\"false\"}");
     }
-
 
     float currentPulse = getPulse();
     float currentTemp = getTemperature();
     float currentDistance = getDistance();
 
+    // Evaluar alertas
     if (currentPulse < minPulse || currentPulse > maxPulse) {
         alertMessages += (currentPulse < minPulse) ? "Pulso muy bajo. " : "Pulso muy alto. ";
         alertSent = true;
     }
+
     if (currentTemp < minTemp || currentTemp > maxTemp) {
         alertMessages += (currentTemp < minTemp) ? "Temperatura muy baja. " : "Temperatura muy alta. ";
         alertSent = true;
     }
+
     if (currentDistance <= proximityThreshold) {
         alertMessages += "Objeto muy cerca! Distancia: " + String(currentDistance) + " cm ";
         alertSent = true;
@@ -111,6 +113,7 @@ void Device::updateReadings() {
     } else {
         updateLedStatus(false);
         analogWrite(Ledpot, 0);
+        client.PATCH("{\"Status/Alerts/Message\":\"\"}");
     }
 
     Serial.println("--------- Monitor Serie ---------");
@@ -140,6 +143,21 @@ float Device::getDistance() {
     return (tiempo / 29.35) / 2;
 }
 
+bool Device::isPanicButtonPressed() {
+    return digitalRead(panicButtonPin) == LOW;
+}
+
+String Device::getCurrentTime() {
+    struct tm timeInfo;
+    if(!getLocalTime(&timeInfo)) {
+        Serial.println("Failed to obtain time");
+        return "";
+    }
+    char timeStringBuffer[20];
+    strftime(timeStringBuffer, sizeof(timeStringBuffer), "%d/%m/%Y %H:%M", &timeInfo);
+    return String(timeStringBuffer);
+}
+
 void Device::lcdSetCursor(int col, int row) {
     lcd.setCursor(col, row);
 }
@@ -150,8 +168,4 @@ void Device::lcdPrint(const String &text) {
 
 void Device::lcdClear() {
     lcd.clear();
-}
-
-bool Device::isPanicButtonPressed() {
-    return digitalRead(panicButtonPin) == LOW;
 }
