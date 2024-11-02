@@ -1,4 +1,7 @@
 #include "Device.h"
+#include <Arduino.h>
+#include <time.h>
+
 
 Device::Device() : lcd(0x27, 16, 2) {}
 
@@ -9,11 +12,16 @@ void Device::setup() {
     pinMode(tri, OUTPUT);
     pinMode(eco, INPUT);
     digitalWrite(tri, LOW);
+    pinMode(panicButtonPin, INPUT_PULLUP);
+}
+void Device::updateLedStatus(bool isOn) {
+    ledState = isOn;
 }
 
 void Device::sendAlert(const String &message) {
     Serial.println("ALERTA: " + message);
 }
+
 
 void Device::updateLedStatus(bool isOn) {
     ledState = isOn;
@@ -21,19 +29,27 @@ void Device::updateLedStatus(bool isOn) {
 
 
 void Device::updateReadings() {
-
     String alertMessages = "";
     bool alertSent = false;
+    bool panicButtonActivated = isPanicButtonPressed();
 
-    float currentDistance = getDistance();
-
-
+    if (panicButtonActivated) {
+        updateLedStatus(true);
+        sendAlert("¡ALERTA DE PÁNICO ACTIVADA!");
+        client.PATCH("{\"Status/Alerts/panicButton\":\"true\"}");
+        lcdClear();
+        lcdSetCursor(0, 0);
+        lcdPrint("PANIC ALERT!");
+        lcdSetCursor(0, 1);
+        lcdPrint("LLAMAR AYUDA!");
+        analogWrite(Ledpot, 255);
+        delay(1000);
+    }
     if (currentDistance <= proximityThreshold) {
         alertMessages += "Objeto muy cerca! Distancia: " + String(currentDistance) + " cm ";
         alertSent = true;
     }
 
-    // Manejo de estado del LED y envío de alerta si hay alguna
     if (alertSent) {
         updateLedStatus(true);
         analogWrite(Ledpot, 255);
@@ -43,7 +59,6 @@ void Device::updateReadings() {
         analogWrite(Ledpot, 0);
     }
 
-    // Mostrar lecturas en el monitor serie
     Serial.println("--------- Monitor Serie ---------");
     Serial.println("Distancia: " + String(currentDistance) + " cm");
     Serial.println("-----------------------------");
@@ -69,4 +84,8 @@ void Device::lcdPrint(const String &text) {
 
 void Device::lcdClear() {
     lcd.clear();
+}
+
+bool Device::isPanicButtonPressed() {
+    return digitalRead(panicButtonPin) == LOW;
 }

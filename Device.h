@@ -9,6 +9,8 @@ class Device {
     Device();
     void setup();
     void updateReadings();
+    void updateLedStatus(bool isOn);
+    void sendAlert(const String &message);
 
     float getPulse();
     float getDistance();
