@@ -31,7 +31,9 @@
       "top": -70.6,
       "left": 48,
       "attrs": { "label": "Panic" }
-    }
+    },
+    { "type": "chip-pulse-sensor", "id": "chip1", "top": 260.22, "left": -264, "attrs": {} },
+    { "type": "chip-body-temperature", "id": "chip2", "top": -66.18, "left": -264, "attrs": {} }
   ],
   "connections": [
     [ "esp:TX", "$serialMonitor:RX", "", [] ],
