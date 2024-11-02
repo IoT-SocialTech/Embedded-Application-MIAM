@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "author": "SocialTech",
+  "editor": "wokwi",
+  "parts": [
+    { "type": "board-esp32-devkit-c-v4", "id": "esp", "top": -7.21, "left": -83.03, "attrs": {} },
+    {
+      "type": "wokwi-led",
+      "id": "led1",
+      "top": 25.2,
+      "left": -197.8,
+      "attrs": { "color": "orange" }
+    },
+    {
+      "type": "wokwi-lcd1602",
+      "id": "lcd1",
+      "top": 179.2,
+      "left": 149.6,
+      "attrs": { "pins": "i2c" }
+    },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "ultrasonic1",
+      "top": 11.1,
+      "left": 418.3,
+      "attrs": { "distance": "167" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "panicButton",
+      "top": -70.6,
+      "left": 48,
+      "attrs": { "label": "Panic" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX", "$serialMonitor:TX", "", [] ],
+    [ "esp:4", "led1:A", "orange", [] ],
+    [ "esp:GND.2", "led1:C", "black", [] ],
+    [ "esp:GND.2", "lcd1:GND", "black", [] ],
+    [ "esp:3V3", "lcd1:VCC", "red", [] ],
+    [ "esp:21", "lcd1:SDA", "green", [] ],
+    [ "esp:22", "lcd1:SCL", "green", [] ],
+    [ "esp:12", "ultrasonic1:TRIG", "blue", [] ],
+    [ "esp:14", "ultrasonic1:ECHO", "blue", [] ],
+    [ "esp:3V3", "ultrasonic1:VCC", "red", [] ],
+    [ "esp:GND.2", "ultrasonic1:GND", "black", [] ],
+    [ "esp:GND.1", "chip1:GND", "black", [] ],
+    [ "esp:5V", "chip1:VCC", "red", [] ],
+    [ "esp:35", "chip1:OUT0", "blue", [] ],
+    [ "esp:GND.1", "chip2:GND", "black", [] ],
+    [ "esp:5V", "chip2:VCC", "red", [] ],
+    [ "esp:32", "chip2:OUT", "blue", [] ],
+    [ "esp:5", "panicButton:1.l", "green", [] ],
+    [ "esp:GND.2", "panicButton:2.l", "black", [] ]
+  ],
+  "dependencies": {}
+}
