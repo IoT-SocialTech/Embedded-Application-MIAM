@@ -10,6 +10,7 @@ void loop() {
     device.updateReadings();
     float pulse = device.getPulse();
     float temperature = device.getTemperature();
+    float distance = device.getDistance();
 
     device.lcdClear();
 
@@ -25,4 +26,11 @@ void loop() {
     device.lcdSetCursor(0, 1);
     device.lcdPrint(String(distance) + " cm");
     delay(333);
+
+    device.lcdSetCursor(0, 0);
+    device.lcdPrint("Distancia:");
+    device.lcdSetCursor(0, 1);
+    device.lcdPrint(String(distance) + " cm");
+    delay(333);
+}
 }

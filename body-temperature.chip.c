@@ -34,5 +34,5 @@ void chip_init() {
       };
 
     timer_t timer_id = timer_init(&config);
-    timer_start(timer_id, 1000, true);  
+    timer_start(timer_id, 1000, true);
 }
