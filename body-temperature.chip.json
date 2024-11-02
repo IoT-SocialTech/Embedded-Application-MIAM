@@ -1,0 +1,23 @@
+{
+  "name": "body-temperature",
+  "author": "SocialTech",
+  "pins": [
+    "GND",
+    "VCC",
+    "",
+    "OUT",
+    "",
+    "",
+    "",
+    ""
+  ],
+  "controls": [
+    {
+      "id": "temperature",
+      "label": "Body Temperature °C",
+      "type": "slider",
+      "min": 10,
+      "max": 100
+    }
+  ]
+}
