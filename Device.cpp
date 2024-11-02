@@ -47,8 +47,13 @@ void Device::updateReadings() {
     }
 
 
-    float currentTemp = getTemperature();
+    float currentPulse = getPulse();
     float currentDistance = getDistance();
+
+    if (currentPulse < minPulse || currentPulse > maxPulse) {
+        alertMessages += (currentPulse < minPulse) ? "Pulso muy bajo. " : "Pulso muy alto. ";
+        alertSent = true;
+    }
 
     if (currentDistance <= proximityThreshold) {
         alertMessages += "Objeto muy cerca! Distancia: " + String(currentDistance) + " cm ";
@@ -65,13 +70,14 @@ void Device::updateReadings() {
     }
 
     Serial.println("--------- Monitor Serie ---------");
+    Serial.println("Pulso Cardiaco: " + String(currentPulse));
     Serial.println("Distancia: " + String(currentDistance) + " cm");
     Serial.println("-----------------------------");
 }
 
-float Device::getTemperature() {
-    int bodyTemperature = ((analogRead(temperature) * (5 / 4095.0)) / 3.3) * 100;
-    return bodyTemperature;
+float Device::getPulse() {
+    int BPM = ((analogRead(pulse) * (5 / 4095.0))/ 3.3) * 675;
+    return BPM;
 }
 
 float Device::getDistance() {

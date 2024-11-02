@@ -8,9 +8,16 @@ void setup() {
 }
 void loop() {
     device.updateReadings();
-
+    float pulse = device.getPulse();
     float temperature = device.getTemperature();
 
+    device.lcdClear();
+
+    device.lcdSetCursor(1, 0);
+    device.lcdPrint("Pulso cardiaco");
+    device.lcdSetCursor(6, 1);
+    device.lcdPrint(String(pulse));
+    delay(333);
     device.lcdClear();
 
     device.lcdSetCursor(0, 0);
