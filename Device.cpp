@@ -11,8 +11,8 @@ void Device::setup() {
     lcd.backlight();
     pinMode(tri, OUTPUT);
     pinMode(eco, INPUT);
-    digitalWrite(tri, LOW);
     pinMode(panicButtonPin, INPUT_PULLUP);
+    digitalWrite(tri, LOW);
 }
 void Device::updateLedStatus(bool isOn) {
     ledState = isOn;
@@ -45,6 +45,11 @@ void Device::updateReadings() {
         analogWrite(Ledpot, 255);
         delay(1000);
     }
+
+
+    float currentTemp = getTemperature();
+    float currentDistance = getDistance();
+
     if (currentDistance <= proximityThreshold) {
         alertMessages += "Objeto muy cerca! Distancia: " + String(currentDistance) + " cm ";
         alertSent = true;
@@ -62,6 +67,11 @@ void Device::updateReadings() {
     Serial.println("--------- Monitor Serie ---------");
     Serial.println("Distancia: " + String(currentDistance) + " cm");
     Serial.println("-----------------------------");
+}
+
+float Device::getTemperature() {
+    int bodyTemperature = ((analogRead(temperature) * (5 / 4095.0)) / 3.3) * 100;
+    return bodyTemperature;
 }
 
 float Device::getDistance() {

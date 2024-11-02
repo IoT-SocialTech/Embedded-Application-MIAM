@@ -21,7 +21,7 @@ void chip_init() {
     printf("Hello from custom chip!\n");
     chip_data_t *chip_data = (chip_data_t*)malloc(sizeof(chip_data_t));
 
-    chip_data->pulseValue = attr_init("pulseValue", 0); 
+    chip_data->pulseValue = attr_init("pulseValue", 0);
     chip_data->pin = pin_init("OUT0", ANALOG);
 
 
