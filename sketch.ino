@@ -14,6 +14,7 @@ void setup() {
     device.lcdPrint("Connecting...");
     device.connectToWiFi(WIFI_SSID, PASSWORD);
     device.connectToFirebase(DATABASE_URL);
+    device.sendMACAddressToFirebase();
 
     configTime(-9000, -9000, "1.south-america.pool.ntp.org");
 }

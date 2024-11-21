@@ -45,6 +45,20 @@ void Device::connectToFirebase(const String& url) {
     delay(500);
 }
 
+void Device::sendMACAddressToFirebase() {
+    macAddress = WiFi.macAddress();
+    Serial.println("MAC Address: " + macAddress);
+
+    String payload = "{\"MacAddress\":\"" + macAddress + "\"}";
+
+    int httpResponseCode = client.PATCH(payload);
+    if (httpResponseCode > 0) {
+        Serial.println("MAC Address enviado a Firebase: " + macAddress);
+    } else {
+        Serial.println("Error enviando MAC Address: " + String(httpResponseCode));
+    }
+}
+
 void Device::updateFirebase(float pulse, float temperature, float distance) {
     String currentTime = getCurrentTime();
     client.PATCH("{\"Status/Sensors/time\":\"" + currentTime + "\"}");

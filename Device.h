@@ -13,6 +13,7 @@ public:
   void connectToWiFi(const char* ssid, const char* password);
   void connectToFirebase(const String& url);
   void updateFirebase(float pulse, float temperature, float distance);
+  void sendMACAddressToFirebase();
   void updateLedStatus(bool isOn);
   void sendAlert(const String &message);
   String getCurrentTime();
