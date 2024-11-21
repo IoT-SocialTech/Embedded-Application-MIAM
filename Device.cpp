@@ -1,5 +1,7 @@
 #include "Device.h"
 #include <Arduino.h>
+#include <ArduinoJson.h>
+#include <HTTPClient.h>
 #include <time.h>
 
 Device::Device() : lcd(0x27, 16, 2) {}
@@ -45,24 +47,154 @@ void Device::connectToFirebase(const String& url) {
     delay(500);
 }
 
+void Device::sendMACAddressToFirebase() {
+    macAddress = WiFi.macAddress();
+    Serial.println("MAC Address: " + macAddress);
+
+    String payload = "{\"MacAddress\":\"" + macAddress + "\"}";
+
+    int httpResponseCode = client.PATCH(payload);
+    if (httpResponseCode > 0) {
+        Serial.println("MAC Address enviado a Firebase: " + macAddress);
+    } else {
+        Serial.println("Error enviando MAC Address: " + String(httpResponseCode));
+    }
+}
+
 void Device::updateFirebase(float pulse, float temperature, float distance) {
     String currentTime = getCurrentTime();
-    client.PATCH("{\"Status/Sensors/time\":\"" + currentTime + "\"}");
-    client.PATCH("{\"Status/Sensors/Distance\":" + String(distance) + "}");
-    client.PATCH("{\"Status/Sensors/Pulse\":" + String(pulse) + "}");
-    client.PATCH("{\"Status/Sensors/Temperature\":" + String(temperature) + "}");
+    client.PATCH("{\"Time\":\"" + currentTime + "\"}");
+    client.PATCH("{\"Distance\":" + String(distance) + "}");
+    client.PATCH("{\"HeartRate\":" + String(pulse) + "}");
+    client.PATCH("{\"Temperature\":" + String(temperature) + "}");
+}
+
+void Device::authenticateWithServer() {
+    HTTPClient httpClient;
+    httpClient.begin("https://miam-edge-api.onrender.com/api/v1/auth/login");
+    httpClient.addHeader("Content-Type", "application/json");
+
+    // Construir el JSON para la solicitud
+    JsonDocument dataRecord;
+    dataRecord["id"] = macAddress;
+    dataRecord["password"] = macAddress;
+    String dataRecordResource;
+    serializeJson(dataRecord, dataRecordResource);
+    int httpResponseCode = httpClient.POST(dataRecordResource);
+
+    if (httpResponseCode > 0) {
+        String responseResource = httpClient.getString();
+        StaticJsonDocument<512> response;
+        DeserializationError error = deserializeJson(response, responseResource);
+        if (!error) {
+            String status = response["status"];
+            if (status == "SUCCESS") {
+                token = response["data"]["token"].as<String>();
+                Serial.println("Token almacenado: " + token);
+            } else {
+                Serial.println("Error en autenticación: " + response["message"].as<String>());
+            }
+        } else {
+            Serial.println("Error al parsear JSON: " + String(error.c_str()));
+        }
+    } else {
+        Serial.println("Error en la solicitud HTTP: " + String(httpResponseCode));
+    }
+    httpClient.end();
+}
+
+void Device::fetchDeviceLimits() {
+    if (token.isEmpty()) {
+        Serial.println("Error: Token no disponible. Autentícate primero.");
+        return;
+    }
+    // Construir la URL con el MAC Address
+    String endpoint = "https://miam-edge-api.onrender.com/api/v1/miam-edge-api/device/" + macAddress;
+    HTTPClient httpClient;
+    httpClient.begin(endpoint);
+    httpClient.addHeader("Authorization", "Bearer " + token);
+
+    int httpResponseCode = httpClient.GET();
+
+    if (httpResponseCode > 0) {
+        String responseResource = httpClient.getString();
+        //Serial.println("Respuesta del servidor: " + responseResource);
+        StaticJsonDocument<512> response;
+        DeserializationError error = deserializeJson(response, responseResource);
+        if (!error) {
+            String status = response["status"];
+            if (status == "SUCCESS") {
+                // Capturar los valores deseados
+                maxPulse = response["data"]["limitHeartRate"];
+                maxTemp = response["data"]["limitTemperature"];
+                proximityThreshold = response["data"]["limitDistance"];
+                Serial.println("Límites obtenidos:");
+                Serial.println("Pulso: " + String(maxPulse));
+                Serial.println("Temperatura: " + String(maxTemp));
+                Serial.println("Distancia: " + String(proximityThreshold));
+            } else {
+                Serial.println("Error en la respuesta: " + response["message"].as<String>());
+            }
+        } else {
+            Serial.println("Error al parsear JSON: " + String(error.c_str()));
+        }
+    } else {
+        Serial.println("Error en la solicitud HTTP: " + String(httpResponseCode));
+    }
+
+    httpClient.end();
+}
+
+String Device::getToken() const {
+    return token;
 }
 
 void Device::updateLedStatus(bool isOn) {
-    ledState = isOn;
-    client.PATCH("{\"Status/Led\":\"" + String(isOn ? "on" : "off") + "\"}");
+    ledState = String(isOn ? "on" : "off");
+    client.PATCH("{\"Led\":\"" + String(isOn ? "on" : "off") + "\"}");
 }
 
 void Device::sendAlert(const String &message) {
     Serial.println("ALERTA: " + message);
-    client.PATCH("{\"Status/Alerts/Message\":\"" + message + "\"}");
+    client.PATCH("{\"Alert\":\"" + message + "\"}");
 }
 
+
+void Device::sendMetricsToServer(const String& alert, float distance, float pulse, float temperature, const String& ledStatus, const String& panicButton, const String& currentTime) {
+    if (token.isEmpty()) {
+        Serial.println("Error: Token no disponible. Autentícate primero.");
+        return;
+    }
+    String data = "{\"Alert\":\"" + alert + "\",\"Distance\":"+
+                      String(distance) + ",\"HeartRate\":" + String(pulse) + ",\"Led\":\"" +
+                      ledStatus + "\",\"MacAddress\":\"" + macAddress + "\",\"PanicButton\":\"" +
+                      panicButton + "\",\"Temperature\":" + String(temperature) + ",\"Time\":\"" +
+                      currentTime + "\"}";
+
+
+
+    JsonDocument dataRecord;
+    dataRecord["data"] = data;
+    String dataRecordResource;
+    serializeJson(dataRecord, dataRecordResource);
+    Serial.println(dataRecordResource);
+    // Configurar la solicitud HTTP
+    HTTPClient httpClient;
+    httpClient.begin("https://miam-edge-api.onrender.com/api/v1/miam-edge-api/metrics");
+    httpClient.addHeader("Content-Type", "application/json");
+    httpClient.addHeader("Authorization", "Bearer " + token);
+
+    // Enviar la solicitud
+    int httpResponseCode = httpClient.POST(dataRecordResource);
+
+    if (httpResponseCode > 0) {
+        String response = httpClient.getString();
+        Serial.println("Respuesta del servidor: " + response);
+    } else {
+        Serial.println("Error en la solicitud HTTP: " + String(httpResponseCode));
+    }
+    httpClient.end();
+}
 
 void Device::updateReadings() {
 
@@ -70,10 +202,17 @@ void Device::updateReadings() {
     bool alertSent = false;
     bool panicButtonActivated = isPanicButtonPressed();
 
+    // Obtener lecturas de los sensores
+    float currentPulse = getPulse();
+    float currentTemp = getTemperature();
+    float currentDistance = getDistance();
+
     if (panicButtonActivated) {
         updateLedStatus(true);
-        sendAlert("¡ALERTA DE PÁNICO ACTIVADA!");
-        client.PATCH("{\"Status/Alerts/panicButton\":\"true\"}");
+        alertMessages = "ALERTA DE PANICO ACTIVADA!";
+        sendAlert(alertMessages);
+        sendMetricsToServer(alertMessages, currentDistance, currentPulse, currentTemp, "on", "true", getCurrentTime());
+        client.PATCH("{\"PanicButton\":\"true\"}");
         lcdClear();
         lcdSetCursor(0, 0);
         lcdPrint("PANIC ALERT!");
@@ -83,12 +222,8 @@ void Device::updateReadings() {
         delay(1000);
         return;
     } else {
-        client.PATCH("{\"Status/Alerts/panicButton\":\"false\"}");
+        client.PATCH("{\"PanicButton\":\"false\"}");
     }
-
-    float currentPulse = getPulse();
-    float currentTemp = getTemperature();
-    float currentDistance = getDistance();
 
     // Evaluar alertas
     if (currentPulse < minPulse || currentPulse > maxPulse) {
@@ -106,6 +241,7 @@ void Device::updateReadings() {
         alertSent = true;
     }
 
+    // Manejo de estado del LED y envío de alerta si hay alguna
     if (alertSent) {
         updateLedStatus(true);
         analogWrite(Ledpot, 255);
@@ -113,9 +249,12 @@ void Device::updateReadings() {
     } else {
         updateLedStatus(false);
         analogWrite(Ledpot, 0);
-        client.PATCH("{\"Status/Alerts/Message\":\"\"}");
+        client.PATCH("{\"Alert\":\"\"}");
     }
 
+    sendMetricsToServer(alertMessages,currentDistance,currentPulse,currentTemp,ledState,"false",getCurrentTime());
+
+    // Mostrar lecturas en el monitor serie
     Serial.println("--------- Monitor Serie ---------");
     Serial.println("Voltaje de Pulso: " + String(currentPulse));
     Serial.println("Temperatura: " + String(currentTemp) + " °C");

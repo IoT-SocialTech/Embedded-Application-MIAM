@@ -13,6 +13,7 @@ public:
   void connectToWiFi(const char* ssid, const char* password);
   void connectToFirebase(const String& url);
   void updateFirebase(float pulse, float temperature, float distance);
+  void sendMACAddressToFirebase();
   void updateLedStatus(bool isOn);
   void sendAlert(const String &message);
   String getCurrentTime();
@@ -20,6 +21,11 @@ public:
   float getDistance();
   float getTemperature();
   bool isPanicButtonPressed();
+
+  void authenticateWithServer();
+  String getToken() const;
+  void fetchDeviceLimits();
+  void sendMetricsToServer(const String& alert, float distance, float pulse, float temperature, const String& ledStatus, const String& panicButton, const String& currentTime);
 
   void lcdSetCursor(int col, int row);
   void lcdPrint(const String &text);
@@ -45,7 +51,9 @@ private:
   LiquidCrystal_I2C lcd;
   HTTPClient client;
   String databaseUrl;
-  bool ledState = false;
+  String token;
+  String macAddress;
+  String ledState = "on";
 };
 
 #endif
