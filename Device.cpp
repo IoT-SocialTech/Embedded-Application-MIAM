@@ -67,6 +67,44 @@ void Device::updateFirebase(float pulse, float temperature, float distance) {
     client.PATCH("{\"Status/Sensors/Temperature\":" + String(temperature) + "}");
 }
 
+void Device::authenticateWithServer() {
+    HTTPClient httpClient;
+    httpClient.begin("https://miam-edge-api.onrender.com/api/v1/auth/login");
+    httpClient.addHeader("Content-Type", "application/json");
+
+    // Construir el JSON para la solicitud
+    JsonDocument dataRecord;
+    dataRecord["id"] = macAddress;
+    dataRecord["password"] = macAddress;
+    String dataRecordResource;
+    serializeJson(dataRecord, dataRecordResource);
+    int httpResponseCode = httpClient.POST(dataRecordResource);
+
+    if (httpResponseCode > 0) {
+        String responseResource = httpClient.getString();
+        StaticJsonDocument<512> response;
+        DeserializationError error = deserializeJson(response, responseResource);
+        if (!error) {
+            String status = response["status"];
+            if (status == "SUCCESS") {
+                token = response["data"]["token"].as<String>();
+                Serial.println("Token almacenado: " + token);
+            } else {
+                Serial.println("Error en autenticación: " + response["message"].as<String>());
+            }
+        } else {
+            Serial.println("Error al parsear JSON: " + String(error.c_str()));
+        }
+    } else {
+        Serial.println("Error en la solicitud HTTP: " + String(httpResponseCode));
+    }
+    httpClient.end();
+}
+
+String Device::getToken() const {
+    return token;
+}
+
 void Device::updateLedStatus(bool isOn) {
     ledState = isOn;
     client.PATCH("{\"Status/Led\":\"" + String(isOn ? "on" : "off") + "\"}");

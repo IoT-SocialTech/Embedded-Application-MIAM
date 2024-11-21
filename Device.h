@@ -22,6 +22,9 @@ public:
   float getTemperature();
   bool isPanicButtonPressed();
 
+  void authenticateWithServer();
+  String getToken() const;
+
   void lcdSetCursor(int col, int row);
   void lcdPrint(const String &text);
   void lcdClear();
@@ -46,7 +49,9 @@ private:
   LiquidCrystal_I2C lcd;
   HTTPClient client;
   String databaseUrl;
-  bool ledState = false;
+  String token;
+  String macAddress;
+  String ledState = "on";
 };
 
 #endif
