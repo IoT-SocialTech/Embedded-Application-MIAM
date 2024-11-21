@@ -16,22 +16,29 @@ void setup() {
     device.connectToFirebase(DATABASE_URL);
     device.sendMACAddressToFirebase();
     device.authenticateWithServer();
-
+	device.fetchDeviceLimits();
     configTime(-9000, -9000, "1.south-america.pool.ntp.org");
 }
 void loop() {
     device.updateReadings();
+
     float pulse = device.getPulse();
-    float temperature = device.getTemperature();
     float distance = device.getDistance();
+    float temperature = device.getTemperature();
 
-    device.updateFirebase(pulse, temperature, distance);
     device.lcdClear();
-
     device.lcdSetCursor(1, 0);
     device.lcdPrint("Pulso cardiaco");
     device.lcdSetCursor(6, 1);
     device.lcdPrint(String(pulse));
+
+    device.updateFirebase(pulse, temperature, distance);
+    device.lcdClear();
+
+    device.lcdSetCursor(0, 0);
+    device.lcdPrint("Temperatura:");
+    device.lcdSetCursor(0, 1);
+    device.lcdPrint(String(temperature) + " C");
     delay(333);
     device.lcdClear();
 
@@ -40,11 +47,4 @@ void loop() {
     device.lcdSetCursor(0, 1);
     device.lcdPrint(String(distance) + " cm");
     delay(333);
-
-    device.lcdSetCursor(0, 0);
-    device.lcdPrint("Distancia:");
-    device.lcdSetCursor(0, 1);
-    device.lcdPrint(String(distance) + " cm");
-    delay(333);
-}
 }

@@ -24,6 +24,8 @@ public:
 
   void authenticateWithServer();
   String getToken() const;
+  void fetchDeviceLimits();
+  void sendMetricsToServer(const String& alert, float distance, float pulse, float temperature, const String& ledStatus, const String& panicButton, const String& currentTime);
 
   void lcdSetCursor(int col, int row);
   void lcdPrint(const String &text);
